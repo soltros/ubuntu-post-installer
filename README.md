@@ -16,7 +16,7 @@ bash run.sh --dry-run
 sudo bash run.sh
 ```
 
-**Repository prerequisite:** the package repository must publish a signed **`apt-stonking`** release first. Its current configuration lists only `noble` and `resolute`, and no release was published when this installer was prepared. The installer checks the 26.10 release, its signature, suite, expiry and any previously installed signing key before changing system settings. It refuses to substitute a different Ubuntu release’s packages. Follow the package repository’s maintainer instructions to publish the matching release; this repository does not generate signing keys or publish application packages.
+**Repository prerequisite:** the package repository must publish a signed **`apt-stonking`** release first. The package repository now targets 26.10, but its first signed release has not been published yet. The installer checks the 26.10 release, its signature, suite, expiry and any previously installed signing key before changing system settings. It refuses to substitute a different Ubuntu release’s packages. Follow the package repository’s maintainer instructions to publish the matching release; this repository does not generate signing keys or publish application packages.
 
 Run from your normal desktop account using `sudo`. Another existing account can be selected with `sudo bash run.sh --user derrik`. The installer uses that account’s actual home directory and does not create accounts, set passwords, repartition disks, modify mounts, change the hostname, replace the bootloader, remove existing software or automatically reboot.
 
