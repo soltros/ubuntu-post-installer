@@ -1,0 +1,19 @@
+name: Check Kubuntu installer
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate installer
+        run: |
+          python3 -m compileall -q scripts assets
+          bash -n run.sh
+          bash -n assets/user/.local/share/ubuntu-setup/plasma-settings.sh
+          python3 -m unittest discover -s tests -v
+          bash run.sh --dry-run

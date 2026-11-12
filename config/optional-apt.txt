@@ -1,0 +1,7 @@
+antigravity
+antigravity-ide
+google-antigravity-cli
+dotool
+caffeine-ng
+adapta-gtk-theme
+xpadneo-dkms

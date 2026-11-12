@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+    <kcfgfile name=""/>
+
+    <group name="General">
+        <entry name="defaultModel" type="String">
+            <default>default</default>
+        </entry>
+        <entry name="sandboxMode" type="String">
+            <default>workspace-write</default>
+        </entry>
+        <entry name="defaultCwd" type="String">
+            <default>/home/derrik</default>
+        </entry>
+        <entry name="pinned" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="popupWidth" type="Int">
+            <default>520</default>
+        </entry>
+        <entry name="popupHeight" type="Int">
+            <default>700</default>
+        </entry>
+        <entry name="focusInputOnOpen" type="Bool">
+            <default>true</default>
+        </entry>
+    </group>
+</kcfg>

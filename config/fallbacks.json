@@ -1,0 +1,37 @@
+[
+  {
+    "apt": "runelite",
+    "flatpak": "net.runelite.RuneLite",
+    "reason": "Upstream distributes a JAR/AppImage rather than a supported Ubuntu 26.10 DEB."
+  },
+  {
+    "apt": "bolt-launcher",
+    "flatpak": "com.adamcake.Bolt",
+    "reason": "Upstream release provides a ZIP rather than a DEB."
+  },
+  {
+    "apt": "rpcs3",
+    "flatpak": "net.rpcs3.RPCS3",
+    "reason": "Upstream Linux binary is an AppImage rather than a DEB."
+  },
+  {
+    "apt": "xemu",
+    "flatpak": "app.xemu.xemu",
+    "reason": "No verified DEB repository for Kubuntu 26.10 was found."
+  },
+  {
+    "apt": "telegram-desktop",
+    "flatpak": "org.telegram.desktop",
+    "reason": "Upstream distributes a tarball and the 26.10 archive has no telegram-desktop DEB."
+  },
+  {
+    "apt": "ghidra",
+    "flatpak": "org.ghidra_sre.Ghidra",
+    "reason": "Upstream distributes a ZIP rather than a supported Ubuntu 26.10 DEB."
+  },
+  {
+    "apt": "pinta",
+    "flatpak": "com.github.PintaProject.Pinta",
+    "reason": "The 26.10 archive has no Pinta DEB, and no supported vendor DEB repository was found."
+  }
+]

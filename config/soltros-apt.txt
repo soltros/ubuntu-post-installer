@@ -1,0 +1,10 @@
+chatgpt
+sharpemu
+waterfox
+termsmith
+vpn-manager
+brave-browser
+recomplauncher
+codex
+lichii
+xenia

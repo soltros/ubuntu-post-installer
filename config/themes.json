@@ -1,0 +1,56 @@
+[
+  {
+    "name": "gtk",
+    "url": "https://github.com/catppuccin/gtk/releases/download/v1.0.3/catppuccin-mocha-blue-standard%2Bdefault.zip",
+    "sha256": "83811051cceb32623fafde411350188046370d73ee7464bb26285cd63c753bdc",
+    "format": "zip"
+  },
+  {
+    "name": "cursors",
+    "url": "https://github.com/catppuccin/cursors/releases/download/v2.0.0/catppuccin-mocha-dark-cursors.zip",
+    "sha256": "a4d976491bdb1b1311b2de88327cad3f1c66c2d9da896e0c56362a660c802585",
+    "format": "zip"
+  },
+  {
+    "name": "sddm",
+    "url": "https://github.com/catppuccin/sddm/releases/download/v1.1.2/catppuccin-mocha-blue-sddm.zip",
+    "sha256": "a68fbed896d3066aec1fdaded561e8d20c855f0de4e193bdca4bc0d59ac1e333",
+    "format": "zip"
+  },
+  {
+    "name": "nerd-fonts",
+    "url": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/NerdFontsSymbolsOnly.tar.xz",
+    "sha256": "01172f37db8543edb102e5cb5c64101c9f4686630804d49b419aa07b23a69996",
+    "format": "tar"
+  },
+  {
+    "name": "kde",
+    "url": "https://codeload.github.com/catppuccin/kde/tar.gz/6606b5179cfc1e9ba5c3b6b70e15c468e2dddca2",
+    "sha256": "79ff6736afef26eb49a978392174801f2a6d28c7e328ac79499e10da8a55f1b9",
+    "format": "tar"
+  },
+  {
+    "name": "kvantum",
+    "url": "https://codeload.github.com/catppuccin/kvantum/tar.gz/71105d224fef95dd023691303477ce3eea487457",
+    "sha256": "f2bd573f8d7500c65fd69e1629b3bcf3eba3468124b81f1d12d54b2f5dda1a0c",
+    "format": "tar"
+  },
+  {
+    "name": "plymouth",
+    "url": "https://codeload.github.com/catppuccin/plymouth/tar.gz/198eba2071d80e4a23b8f51a5859e8f4acf8de6c",
+    "sha256": "91f87e75c5cf505b02276c8163f8046bb4bede634dcb7b23da1c4d25190407c2",
+    "format": "tar"
+  },
+  {
+    "name": "ohmyzsh",
+    "url": "https://codeload.github.com/ohmyzsh/ohmyzsh/tar.gz/6010fb6260f359e71d99ba25f05f9215809b3ed2",
+    "sha256": "c4fa7d0d075839768059ea44c35ca6513d69f1b64c744fbc259afa1d1dae2abd",
+    "format": "tar"
+  },
+  {
+    "name": "roboto-mono",
+    "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/robotomono/RobotoMono%5Bwght%5D.ttf",
+    "sha256": "66a80e79d17e4c7cabd162e2916578a4cc08fd19eef6e2a643305eae9c567b2b",
+    "format": "font"
+  }
+]

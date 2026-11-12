@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "derrik@localhost",
+                "Name": "Derrik Diener"
+            }
+        ],
+        "Category": "Online Services",
+        "Description": "ChatGPT taskbar widget with native Plasma 6 theme styling and persistent login",
+        "Icon": "chatgpt",
+        "Id": "org.kde.plasma.chatgpt",
+        "License": "GPL-3.0-or-later",
+        "Name": "ChatGPT",
+        "Version": "1.0.0",
+        "Website": "https://chatgpt.com"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
