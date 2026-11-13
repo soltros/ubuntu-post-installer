@@ -28,6 +28,18 @@ def configure_shell(root, home):
         temp.write_text(content)
         temp.replace(path)
 
+    # Append a strong glyph fallback to the requested font before Fontconfig's
+    # weak system fallbacks. This also covers Konsole profiles naming a font
+    # directly (e.g. Hack), rather than the generic "monospace" family.
+    write(home / '.config/fontconfig/conf.d/99-soltros-terminal-icons.conf', '''<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+ <match target="pattern">
+  <edit name="family" mode="append" binding="strong"><string>Symbols Nerd Font Mono</string></edit>
+ </match>
+</fontconfig>
+''')
+
     framework = Path('/usr/share/soltros/themes/ohmyzsh')
     if framework.exists() and not (home / '.oh-my-zsh').exists():
         shutil.copytree(framework, home / '.oh-my-zsh')

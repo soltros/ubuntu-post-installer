@@ -9,3 +9,5 @@ fd-find
 duf
 git
 nano
+fontconfig
+fonts-hack

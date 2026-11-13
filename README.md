@@ -42,7 +42,9 @@ sudo bash run.sh --shell-only
 exec zsh
 ```
 
-This installs Zsh, Starship, Oh My Zsh with the git/sudo plugins, autosuggestions, syntax highlighting, eza, bat, ripgrep, fd and duf. It sets Zsh as your login shell and installs your managed configuration **before** any desktop theme or application repository work. `--shell-only` needs only the distribution repositories and the pinned Oh My Zsh resource; it does not require the custom APT release, Plasma setup or theme installation.
+This installs Zsh, Starship, Oh My Zsh with the git/sudo plugins, autosuggestions, syntax highlighting, eza, bat, ripgrep, fd and duf. It sets Zsh as your login shell and installs your managed configuration **before** any desktop theme or application repository work. `--shell-only` needs only the distribution repositories and the pinned Oh My Zsh and Nerd Font resources; it does not require the custom APT release, Plasma setup or theme installation.
+
+Shell setup also installs the pinned Symbols Nerd Font and configures its monospace glyphs as a fallback for your terminal’s existing font. This fixes missing eza/Starship icons, including with `--shell-only`. After updating the checkout, run `sudo bash run.sh --shell-only`, then completely quit and reopen Konsole so it reloads the fonts.
 
 Existing `.zshrc` content and Starship settings are preserved. The managed source hook is placed last so an existing prompt does not override Starship. A default `~/.config/starship.toml` is created only when absent. Ubuntu’s `batcat` and `fdfind` names work without extra system symlinks.
 

@@ -199,7 +199,12 @@ class Installer:
         self.run('apt-get', 'update')
         self.run('apt-get', 'install', '-y', *lines('shell-apt.txt'))
         self.run('starship', '--version')
-        framework = next(item for item in json.loads((ROOT / 'config/themes.json').read_text()) if item['name'] == 'ohmyzsh')
+        resources = json.loads((ROOT / 'config/themes.json').read_text())
+        # Icons are a shell dependency, including --shell-only and unpublished APT.
+        symbols = next(item for item in resources if item['name'] == 'nerd-fonts')
+        self.theme(symbols)
+        self.run('fc-cache', '-f')
+        framework = next(item for item in resources if item['name'] == 'ohmyzsh')
         self.attempt('Oh My Zsh framework', lambda: self.theme(framework))
         self.run('python3', ROOT / 'scripts/shell_settings.py', ROOT, user=True)
         self.run('usermod', '-s', '/usr/bin/zsh', self.user)
@@ -335,6 +340,8 @@ scrub(mounts.get('filesystems', []))
 
     def themes(self):
         for spec in json.loads((ROOT / 'config/themes.json').read_text()):
+            if spec['name'] in ['nerd-fonts', 'ohmyzsh']:
+                continue  # Already installed by the shell stage.
             self.attempt('theme ' + spec['name'], lambda item=spec: self.theme(item))
 
     def theme(self, spec):
