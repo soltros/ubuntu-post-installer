@@ -214,12 +214,22 @@ class Installer:
                 raise RuntimeError('Use sudo with --user to install for a different desktop account.')
             self.run('bash', script)
 
+    def set_default_shell(self):
+        desired = '/usr/bin/zsh'
+        if os.path.realpath(pwd.getpwnam(self.user).pw_shell) != os.path.realpath(desired):
+            self.run('usermod', '-s', desired, self.user)
+        actual = pwd.getpwnam(self.user).pw_shell
+        if os.path.realpath(actual) != os.path.realpath(desired):
+            raise RuntimeError(f'Login shell for {self.user} is still {actual}; expected {desired}.')
+        print(f'Default login shell verified for {self.user}: {actual}. Log out of Plasma and back in to refresh SHELL.')
+
     def shell(self):
         self.run('apt-get', 'update')
         self.run('apt-get', 'install', '-y', 'software-properties-common', 'ca-certificates', 'curl')
         self.run('add-apt-repository', '-y', 'universe')
         self.run('apt-get', 'update')
         self.run('apt-get', 'install', '-y', *lines('shell-apt.txt'))
+        self.set_default_shell()
         self.run('starship', '--version')
         resources = json.loads((ROOT / 'config/themes.json').read_text())
         # Icons are a shell dependency, including --shell-only and unpublished APT.
@@ -231,7 +241,6 @@ class Installer:
         framework = next(item for item in resources if item['name'] == 'ohmyzsh')
         self.attempt('Oh My Zsh framework', lambda: self.theme(framework))
         self.run('python3', ROOT / 'scripts/shell_settings.py', ROOT, user=True)
-        self.run('usermod', '-s', '/usr/bin/zsh', self.user)
         self.run('zsh', '-ic', '[[ "$STARSHIP_SHELL" = zsh ]] && command -v starship && alias ll && alias apt-search && whence -w urb', user=True)
 
     def system(self):
@@ -262,7 +271,6 @@ class Installer:
         for group in ['input', 'uinput', 'video', 'render', 'docker', 'libvirt', 'kvm', 'vboxusers', 'gamemode']:
             self.run('groupadd', '-f', group)
             self.run('usermod', '-aG', group, self.user)
-        self.run('usermod', '-s', '/usr/bin/zsh', self.user)
         self.run('timedatectl', 'set-timezone', 'America/Detroit')
         self.run('locale-gen', 'en_US.UTF-8')
         self.run('update-locale', 'LANG=en_US.UTF-8')

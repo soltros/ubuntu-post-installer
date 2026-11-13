@@ -67,6 +67,8 @@ def configure_shell(root, home):
         profile.add_section('General')
     if not profile.has_option('General', 'Name'):
         profile.set('General', 'Name', 'Soltros')
+    profile.set('General', 'Command', '/usr/bin/zsh')
+    profile.set('General', 'Arguments', '/usr/bin/zsh')
     if not profile.has_section('Appearance'):
         profile.add_section('Appearance')
     old_font = profile.get('Appearance', 'Font', fallback='monospace,11,-1,5,50,0,0,0,0,0')

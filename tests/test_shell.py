@@ -45,12 +45,15 @@ class ShellTests(unittest.TestCase):
             (home / '.config/konsolerc').write_text('[Desktop Entry]\nDefaultProfile=Personal.profile\n[Other]\nKeep=true\n')
             profile = home / '.local/share/konsole/Personal.profile'
             profile.parent.mkdir(parents=True)
-            profile.write_text('[General]\nName=Personal\n[Appearance]\nFont=Roboto Mono,14,-1,5,50,0,0,0,0,0\nColorScheme=Breeze\n')
+            profile.write_text('[General]\nName=Personal\nCommand=/bin/bash\nArguments=/bin/bash\n[Appearance]\nFont=Roboto Mono,14,-1,5,50,0,0,0,0,0\nColorScheme=Breeze\n')
             self.configure(home)
             first = profile.read_text()
             self.assertIn('Font=Hack Nerd Font Mono,14,-1,5,50,0,0,0,0,0', first)
             self.assertIn('ColorScheme=Breeze', first)
             self.assertIn('Name=Personal', first)
+            self.assertIn('Command=/usr/bin/zsh', first)
+            self.assertIn('Arguments=/usr/bin/zsh', first)
+            self.assertNotIn('/bin/bash', first)
             self.assertIn('Keep=true', (home / '.config/konsolerc').read_text())
             self.configure(home)
             self.assertEqual(profile.read_text(), first)
@@ -103,6 +106,23 @@ print -r -- shell-startup-ok
             result = subprocess.run(['zsh', '-i', '-c', script], env=env, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn('shell-startup-ok', result.stdout)
+
+    def test_login_shell_change_is_verified_for_selected_user(self):
+        i = installer.Installer(installer.parse_args([]))
+        i.user = 'desktop-user'
+        calls = []
+        i.run = lambda *args: calls.append(args)
+        with patch.object(installer.pwd, 'getpwnam', side_effect=[SimpleNamespace(pw_shell='/bin/bash'), SimpleNamespace(pw_shell='/usr/bin/zsh')]) as lookup, contextlib.redirect_stdout(io.StringIO()):
+            i.set_default_shell()
+        self.assertEqual(calls, [('usermod', '-s', '/usr/bin/zsh', 'desktop-user')])
+        self.assertTrue(all(call.args == ('desktop-user',) for call in lookup.call_args_list))
+
+    def test_login_shell_change_cannot_silently_fail(self):
+        i = installer.Installer(installer.parse_args([]))
+        i.run = lambda *args: None
+        with patch.object(installer.pwd, 'getpwnam', return_value=SimpleNamespace(pw_shell='/bin/bash')):
+            with self.assertRaisesRegex(RuntimeError, 'Login shell'):
+                i.set_default_shell()
 
     def test_shell_only_preview_has_no_network_or_processes(self):
         i = installer.Installer(installer.parse_args(['--shell-only', '--dry-run']))
