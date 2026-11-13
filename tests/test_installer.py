@@ -22,6 +22,34 @@ class InstallerTests(unittest.TestCase):
     def installer(self, *args):
         return mod.Installer(mod.parse_args(list(args)))
 
+    def test_resource_overlay_can_repeat_with_existing_and_dangling_symlinks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            source, dest, outside = [base / name for name in ['source', 'dest', 'outside']]
+            for path in [source, dest, outside]:
+                path.mkdir()
+            (source / 'theme').write_text('current theme')
+            (source / 'alias').symlink_to('theme')
+            (source / 'dangling').symlink_to('not-present')
+            (source / 'plugins').mkdir()
+            (source / 'plugins/readme').write_text('managed')
+            (outside / 'readme').write_text('personal')
+            (dest / 'plugins').symlink_to(outside, target_is_directory=True)
+            (dest / 'theme').symlink_to(outside / 'readme')
+            (dest / 'custom').write_text('keep')
+            for _ in range(2):
+                mod.merge_resource_tree(source, dest)
+                self.assertEqual((dest / 'alias').readlink(), Path('theme'))
+                self.assertEqual((dest / 'dangling').readlink(), Path('not-present'))
+                self.assertEqual((dest / 'theme').read_text(), 'current theme')
+                self.assertFalse((dest / 'plugins').is_symlink())
+                self.assertEqual((outside / 'readme').read_text(), 'personal')
+                self.assertEqual((dest / 'custom').read_text(), 'keep')
+            (source / 'alias').unlink()
+            (source / 'alias').symlink_to('plugins/readme')
+            mod.merge_resource_tree(source, dest)
+            self.assertEqual((dest / 'alias').readlink(), Path('plugins/readme'))
+
     def test_preview_has_no_commands_or_network(self):
         with patch.object(mod.subprocess, 'run', side_effect=AssertionError('command executed')), patch.object(mod.urllib.request, 'urlopen', side_effect=AssertionError('network used')):
             self.assertEqual(self.installer('--dry-run').main(), 0)

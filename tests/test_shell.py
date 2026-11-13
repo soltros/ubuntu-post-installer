@@ -38,6 +38,23 @@ class ShellTests(unittest.TestCase):
             self.assertEqual(len(backups), 1)
             self.assertEqual(backups[0].read_text(), original)
 
+    def test_konsole_font_repair_preserves_profile_and_is_repeatable(self):
+        with tempfile.TemporaryDirectory() as folder:
+            home = Path(folder)
+            (home / '.config').mkdir()
+            (home / '.config/konsolerc').write_text('[Desktop Entry]\nDefaultProfile=Personal.profile\n[Other]\nKeep=true\n')
+            profile = home / '.local/share/konsole/Personal.profile'
+            profile.parent.mkdir(parents=True)
+            profile.write_text('[General]\nName=Personal\n[Appearance]\nFont=Roboto Mono,14,-1,5,50,0,0,0,0,0\nColorScheme=Breeze\n')
+            self.configure(home)
+            first = profile.read_text()
+            self.assertIn('Font=Hack Nerd Font Mono,14,-1,5,50,0,0,0,0,0', first)
+            self.assertIn('ColorScheme=Breeze', first)
+            self.assertIn('Name=Personal', first)
+            self.assertIn('Keep=true', (home / '.config/konsolerc').read_text())
+            self.configure(home)
+            self.assertEqual(profile.read_text(), first)
+
     def test_existing_starship_configuration_is_preserved(self):
         with tempfile.TemporaryDirectory() as folder:
             home = Path(folder)

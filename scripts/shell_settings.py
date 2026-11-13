@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Apply shell configuration independently of desktop/theme activation."""
+import configparser
+import io
 import datetime
 import os
 from pathlib import Path
@@ -39,6 +41,43 @@ def configure_shell(root, home):
  </match>
 </fontconfig>
 ''')
+
+    def config(path):
+        parser = configparser.ConfigParser(interpolation=None, strict=False)
+        parser.optionxform = str
+        if path.is_file():
+            parser.read(path)
+        return parser
+
+    def save_config(path, parser):
+        output = io.StringIO()
+        parser.write(output, space_around_delimiters=False)
+        write(path, output.getvalue())
+
+    # Qt/Konsole can retain a profile's explicit font instead of using generic
+    # Fontconfig fallbacks. Select a patched text font in the default profile.
+    konsolerc = home / '.config/konsolerc'
+    terminal = config(konsolerc)
+    profile_name = terminal.get('Desktop Entry', 'DefaultProfile', fallback='Soltros.profile')
+    if Path(profile_name).name != profile_name or not profile_name.endswith('.profile'):
+        profile_name = 'Soltros.profile'
+    profile_path = home / '.local/share/konsole' / profile_name
+    profile = config(profile_path if profile_path.is_file() else Path('/usr/share/konsole') / profile_name)
+    if not profile.has_section('General'):
+        profile.add_section('General')
+    if not profile.has_option('General', 'Name'):
+        profile.set('General', 'Name', 'Soltros')
+    if not profile.has_section('Appearance'):
+        profile.add_section('Appearance')
+    old_font = profile.get('Appearance', 'Font', fallback='monospace,11,-1,5,50,0,0,0,0,0')
+    font_parts = old_font.split(',')
+    font_parts[0] = 'Hack Nerd Font Mono'
+    profile.set('Appearance', 'Font', ','.join(font_parts))
+    save_config(profile_path, profile)
+    if not terminal.has_section('Desktop Entry'):
+        terminal.add_section('Desktop Entry')
+    terminal.set('Desktop Entry', 'DefaultProfile', profile_name)
+    save_config(konsolerc, terminal)
 
     framework = Path('/usr/share/soltros/themes/ohmyzsh')
     if framework.exists() and not (home / '.oh-my-zsh').exists():

@@ -78,6 +78,28 @@ def safe_unzip(archive, destination):
                 target.chmod((m.external_attr >> 16) & 0o777 or 0o644)
 
 
+def merge_resource_tree(source, destination):
+    """Overlay managed resources without following old destination symlinks."""
+    source, destination = Path(source), Path(destination)
+    if destination.is_symlink():
+        destination.unlink()
+    destination.mkdir(parents=True, exist_ok=True)
+    for item in source.iterdir():
+        target = destination / item.name
+        if item.is_symlink():
+            # copytree(dirs_exist_ok=True, symlinks=True) still calls symlink()
+            # on existing links, which fails on the second installer run.
+            if target.is_symlink() or target.is_file():
+                target.unlink()
+            target.symlink_to(os.readlink(item))
+        elif item.is_dir():
+            merge_resource_tree(item, target)
+        else:
+            if target.is_symlink():
+                target.unlink()
+            shutil.copy2(item, target)
+
+
 class Installer:
     def __init__(self, args):
         self.args = args
@@ -203,6 +225,8 @@ class Installer:
         # Icons are a shell dependency, including --shell-only and unpublished APT.
         symbols = next(item for item in resources if item['name'] == 'nerd-fonts')
         self.theme(symbols)
+        terminal_font = next(item for item in resources if item['name'] == 'terminal-font')
+        self.theme(terminal_font)
         self.run('fc-cache', '-f')
         framework = next(item for item in resources if item['name'] == 'ohmyzsh')
         self.attempt('Oh My Zsh framework', lambda: self.theme(framework))
@@ -340,7 +364,7 @@ scrub(mounts.get('filesystems', []))
 
     def themes(self):
         for spec in json.loads((ROOT / 'config/themes.json').read_text()):
-            if spec['name'] in ['nerd-fonts', 'ohmyzsh']:
+            if spec['name'] in ['nerd-fonts', 'terminal-font', 'ohmyzsh']:
                 continue  # Already installed by the shell stage.
             self.attempt('theme ' + spec['name'], lambda item=spec: self.theme(item))
 
@@ -370,16 +394,17 @@ scrub(mounts.get('filesystems', []))
                 'cursors': '/usr/share/icons/catppuccin-mocha-dark-cursors',
                 'sddm': '/usr/share/sddm/themes/catppuccin-mocha-blue',
                 'nerd-fonts': '/usr/local/share/fonts/soltros-symbols',
+                'terminal-font': '/usr/local/share/fonts/soltros-terminal',
                 'kde': '/usr/share/soltros/themes/kde',
                 'ohmyzsh': '/usr/share/soltros/themes/ohmyzsh',
                 'kvantum': '/usr/share/Kvantum/catppuccin-mocha-blue',
                 'plymouth': '/usr/share/plymouth/themes/catppuccin-mocha',
             }
-            if name == 'nerd-fonts':
+            if name in ['nerd-fonts', 'terminal-font']:
                 source = unpack
             if name in ['kvantum', 'plymouth']:
                 source /= 'themes/catppuccin-mocha' + ('-blue' if name == 'kvantum' else '')
-            shutil.copytree(source, targets[name], dirs_exist_ok=True, symlinks=True)
+            merge_resource_tree(source, targets[name])
             if name == 'sddm':
                 self.write('/etc/sddm.conf.d/90-soltros.conf', '[Theme]\nCurrent=catppuccin-mocha-blue\n[General]\nDisplayServer=wayland\n')
             if name == 'plymouth':
