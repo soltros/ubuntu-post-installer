@@ -2,7 +2,7 @@
 
 Apply Derrik’s AMD desktop profile to an existing **Kubuntu 26.10 amd64** installation. `run.sh` installs applications, configures services, and applies the Plasma desktop settings. Run it again to reapply the managed configuration.
 
-Applications come from Kubuntu’s APT repositories, [Soltros Ubuntu Packages](https://github.com/soltros/ubuntu_packages), or official vendor `.deb` downloads. The post-installer does not compile applications or build packages. Flatpak is used only for the explicitly listed apps that have no supported Debian package candidate.
+Applications come from Kubuntu’s APT repositories, [Soltros Ubuntu Packages](https://github.com/soltros/ubuntu_packages), for custom applications. The post-installer does not compile applications or build packages. Flatpak is used only for the explicitly listed apps that have no supported Debian package candidate.
 
 ## Run
 
@@ -16,7 +16,7 @@ bash run.sh --dry-run
 sudo bash run.sh
 ```
 
-**Repository prerequisite:** the package repository must publish a signed **`apt-stonking`** release first. The package repository now targets 26.10, but its first signed release has not been published yet. The installer checks the 26.10 release, its signature, suite, expiry and any previously installed signing key before applying application and desktop settings. The independent Zsh/Starship phase runs first, even when the application repository is not ready. It refuses to substitute a different Ubuntu release’s packages. Follow the package repository’s maintainer instructions to publish the matching release; this repository does not generate signing keys or publish application packages.
+**Repository prerequisite:** the package repository must publish a signed **`apt-stonking`** release first. The package repository targets 26.10 and publishes its successful builds as signed APT releases. The installer checks the 26.10 release, its signature, suite, expiry and any previously installed signing key before applying application and desktop settings. The independent Zsh/Starship and user-level Antigravity phases run first, even when the application repository is not ready. It refuses to substitute a different Ubuntu release’s packages. Follow the package repository’s maintainer instructions to publish the matching release; this repository does not generate signing keys or publish application packages.
 
 Run from your normal desktop account using `sudo`. Another existing account can be selected with `sudo bash run.sh --user derrik`. The installer uses that account’s actual home directory and does not create accounts, set passwords, repartition disks, modify mounts, change the hostname, replace the bootloader, remove existing software or automatically reboot.
 
@@ -50,7 +50,8 @@ Existing `.zshrc` content and Starship settings are preserved. The managed sourc
 |---|---|
 | `cat`, `grep`, `find`, `df` | bat, ripgrep, fd and duf |
 | `ls`, `ll`, `tree` | eza with icons; `ll` includes hidden files and Git information |
-| `update`, `apt-update`, `apt-upgrade` | APT refresh/upgrade operations |
+| `update` | Refresh APT, upgrade packages, then run `agy update` as your user |
+| `apt-update`, `apt-upgrade` | APT refresh/upgrade operations |
 | `apt-install`, `apt-remove`, `apt-search`, `apt-show`, `apt-list` | Install, remove, search, inspect and list Debian packages |
 | `urb [options]` | Reapply this installer checkout |
 | `ufu` | Fast-forward this checkout and refresh APT indexes |
@@ -74,7 +75,7 @@ To install just the CLI without desktop or system setup, run without sudo:
 bash run.sh --antigravity-only
 ```
 
-When the full installer runs under sudo, it switches to the selected desktop account and sets that account’s `HOME` before executing the command. The resulting executable is `~/.local/bin/agy`; the managed Zsh configuration includes that directory in PATH. The vendor installer skips an existing CLI installation and handles its own updates. This installs the CLI; the Antigravity IDE is a separate application.
+When the full installer runs under sudo, it switches to the selected desktop account and sets that account’s `HOME` before executing the command. The resulting executable is `~/.local/bin/agy`; the managed Zsh configuration includes that directory in PATH. The vendor installer skips an existing CLI installation. The Zsh `update` alias runs `agy update` after the APT upgrade, without sudo for that command. This installs the CLI; the Antigravity IDE is a separate application.
 
 ## What gets configured
 
@@ -99,7 +100,7 @@ The dictation, TV and Durandal launchers reference `voxtype`, `~/.local/bin/tv-b
 
 - [`config/apt.txt`](config/apt.txt): distribution packages. These package names were checked against the 26.10 archive; installed candidates are checked again at runtime.
 - [`config/soltros-apt.txt`](config/soltros-apt.txt): `chatgpt`, `sharpemu`, `waterfox`, `termsmith`, `vpn-manager`, `brave-browser`, `recomplauncher`, `codex`, `lichii`, and `xenia`, installed directly from your APT repository.
-- [`config/vendor-debs.json`](config/vendor-debs.json): official Debian downloads for Fresh, Bitwarden, Zettlr, Discord and BrowserOS. A configured APT candidate takes priority; otherwise the checksum-locked vendor `.deb` is installed with APT so dependencies and removal remain package-managed.
+- Fresh (`fresh-editor`), Bitwarden, Zettlr, Discord, BrowserOS (`browserclaw`) and xemu also come from your APT repository. There are no direct application DEB downloads or fallback downloads in this installer. Version pins, checksum verification, 26.10 build checks and update issues are maintained in [ubuntu_packages](https://github.com/soltros/ubuntu_packages).
 - Spotify, Kopia and Tailscale use their official signed APT repositories.
 - [`config/optional-apt.txt`](config/optional-apt.txt): additional packages checked in configured repositories. Missing candidates are listed as parity gaps rather than silently replaced. This currently includes Antigravity, dotool, caffeine-ng, Adapta and xpadneo.
 
@@ -112,7 +113,6 @@ APT is checked first **on every run** for each of these names. A Flatpak is inst
 | RuneLite | `runelite` | `net.runelite.RuneLite` | Official Linux release is a JAR/AppImage |
 | Bolt | `bolt-launcher` | `com.adamcake.Bolt` | Official release is a ZIP |
 | RPCS3 | `rpcs3` | `net.rpcs3.RPCS3` | Official Linux binary is an AppImage |
-| xemu | `xemu` | `app.xemu.xemu` | No verified 26.10 Debian repository found |
 | Telegram | `telegram-desktop` | `org.telegram.desktop` | Official tarball; absent from the 26.10 archive |
 | Ghidra | `ghidra` | `org.ghidra_sre.Ghidra` | Official release is a ZIP |
 | Pinta | `pinta` | `com.github.PintaProject.Pinta` | Absent from the 26.10 archive; no supported vendor DEB found |
@@ -137,7 +137,7 @@ git pull --ff-only
 sudo bash run.sh
 ```
 
-Vendor download pins and the checksum-locked theme/font resources are maintained in this repository; they change when their manifests are updated. No development-kernel PPA or graphics-driver PPA is enabled. Kubuntu’s supported kernel and GRUB remain in use.
+Application download pins live in `ubuntu_packages`. Only checksum-locked theme/font resources are maintained in this installer; they change when that manifest is updated. No development-kernel PPA or graphics-driver PPA is enabled. Kubuntu’s supported kernel and GRUB remain in use.
 
 System files are backed up before changes under `/var/backups/ubuntu-post-installer/<timestamp>/`. User configuration backups live under `~/.local/state/ubuntu-post-installer/backups/`. Existing `.zshrc` content is preserved and a managed configuration is sourced once. The Plasma login service reapplies managed appearance preferences each login.
 
@@ -157,4 +157,4 @@ bash -n run.sh
 bash run.sh --dry-run
 ```
 
-CI checks script syntax, manifest consistency, archive extraction, vendor checksum rejection, fallback decisions and a harmless preview. The installation has not been exercised on a complete Kubuntu desktop VM here; GPU, display-manager, Secure Boot and interactive desktop behavior require a real-machine/VM run. A signed 26.10 package release is also required before an end-to-end installation can succeed.
+CI checks script syntax, manifest consistency, archive extraction, APT-only application installation, fallback decisions and a harmless preview. The installation has not been exercised on a complete Kubuntu desktop VM here; GPU, display-manager, Secure Boot and interactive desktop behavior require a real-machine/VM run. A signed 26.10 package release is also required before an end-to-end installation can succeed.

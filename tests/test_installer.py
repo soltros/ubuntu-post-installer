@@ -102,16 +102,17 @@ class InstallerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 mod.safe_unzip(archive, temp / 'bad')
 
-    def test_checksum_mismatch_never_returns_installable_file(self):
-        with tempfile.TemporaryDirectory() as temp:
-            i = self.installer()
-            i.cache = Path(temp)
-            data = {'name': 'example', 'sha256': '0' * 64, 'url': 'https://example.invalid/package.deb'}
-            def fake_download(*args, **kwargs):
-                Path(args[-1]).write_bytes(b'bad package')
-            i.run = fake_download
-            with self.assertRaisesRegex(ValueError, 'SHA256'):
-                i.fetch_artifact(data)
+    def test_custom_apps_only_use_apt(self):
+        i = self.installer()
+        packages = []
+        i.apt = lambda names: packages.extend(names)
+        i.available = lambda name: False
+        i.install_fallbacks = lambda: None
+        i.run = lambda *a, **k: self.fail('Direct application download attempted')
+        i.apps()
+        for name in ['fresh-editor', 'bitwarden', 'zettlr', 'discord', 'browserclaw', 'xemu']:
+            self.assertIn(name, packages)
+        self.assertFalse((ROOT / 'config/vendor-debs.json').exists())
 
     def test_backup_write_is_repeatable_and_does_not_follow_symlink(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -133,7 +134,7 @@ class InstallerTests(unittest.TestCase):
         for filename in ['apt.txt', 'soltros-apt.txt', 'optional-apt.txt']:
             items = mod.lines(filename)
             self.assertEqual(len(items), len(set(items)), filename)
-        for filename in ['themes.json', 'vendor-debs.json']:
+        for filename in ['themes.json']:
             for item in json.loads((ROOT / 'config' / filename).read_text()):
                 self.assertTrue(item['url'].startswith('https://'))
                 self.assertRegex(item['sha256'], r'^[0-9a-f]{64}$')

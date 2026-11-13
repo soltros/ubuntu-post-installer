@@ -8,3 +8,9 @@ recomplauncher
 codex
 lichii
 xenia
+fresh-editor
+bitwarden
+zettlr
+discord
+browserclaw
+xemu

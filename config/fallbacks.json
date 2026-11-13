@@ -15,11 +15,6 @@
     "reason": "Upstream Linux binary is an AppImage rather than a DEB."
   },
   {
-    "apt": "xemu",
-    "flatpak": "app.xemu.xemu",
-    "reason": "No verified DEB repository for Kubuntu 26.10 was found."
-  },
-  {
     "apt": "telegram-desktop",
     "flatpak": "org.telegram.desktop",
     "reason": "Upstream distributes a tarball and the 26.10 archive has no telegram-desktop DEB."

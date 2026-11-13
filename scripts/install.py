@@ -308,24 +308,8 @@ scrub(mounts.get('filesystems', []))
         result = self.run('apt-cache', 'policy', package, capture=True).stdout
         return 'Candidate:' in result and 'Candidate: (none)' not in result
 
-    def fetch_artifact(self, spec):
-        path = self.cache / (spec['sha256'] + '.deb')
-        if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != spec['sha256']:
-            self.run('curl', '--fail', '--location', '--retry', '3', '--proto', '=https', spec['url'], '-o', path)
-        if hashlib.sha256(path.read_bytes()).hexdigest() != spec['sha256']:
-            raise ValueError('SHA256 mismatch: ' + spec['name'])
-        path.chmod(0o644)
-        return path
-
     def apps(self):
         self.apt(lines('soltros-apt.txt'))
-        for spec in json.loads((ROOT / 'config/vendor-debs.json').read_text()):
-            # Prefer a package from configured APT repositories if present.
-            name = spec.get('package', 'fresh-editor' if spec['name'] == 'fresh' else spec['name'])
-            if self.available(name):
-                self.apt([name])
-            else:
-                self.attempt(spec['name'], lambda item=spec: self.run('apt-get', 'install', '-y', self.fetch_artifact(item)))
         for name in lines('optional-apt.txt'):
             if self.available(name):
                 self.apt([name])
@@ -418,7 +402,6 @@ scrub(mounts.get('filesystems', []))
             return
         print('APT:', ' '.join(lines('apt.txt')))
         print('Soltros APT packages:', ' '.join(lines('soltros-apt.txt')))
-        print('Vendor DEBs:', ', '.join(s['name'] for s in json.loads((ROOT / 'config/vendor-debs.json').read_text())))
         print('Apply: AMD graphics, i386 Steam libraries, Docker/libvirt/VirtualBox, SSH, Tailscale, Bluetooth, CUPS, audio, performance, locale, Zsh, fonts, Plasma widget and themes.')
         print('Additional APT packages checked at runtime:', ' '.join(lines('optional-apt.txt')))
         print('Last-resort Flatpak candidates:', ', '.join(item['apt'] for item in json.loads((ROOT / 'config/fallbacks.json').read_text())))

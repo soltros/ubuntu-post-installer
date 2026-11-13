@@ -57,6 +57,10 @@ class ShellTests(unittest.TestCase):
                 p = binary / name
                 p.write_text('#!/bin/sh\nexit 0\n')
                 p.chmod(0o755)
+            for name in ['sudo', 'agy']:
+                stub = binary / name
+                stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "' + name + ' $*" >> "$HOME/update.log"\n')
+                stub.chmod(0o755)
             starship = binary / 'starship'
             real = os.environ.get('SOLTROS_TEST_STARSHIP')
             if real:
@@ -75,6 +79,8 @@ class ShellTests(unittest.TestCase):
 (( $+functions[urb] && $+functions[ufu] && $+functions[ufu-rebuild] )) || exit 25
 alias-help | /usr/bin/grep -q apt-install || exit 26
 [[ $path[1] = $HOME/.local/bin ]] || exit 27
+update
+[[ "$(< "$HOME/update.log")" = $'sudo apt-get update\nsudo apt-get upgrade\nagy update' ]] || exit 28
 print -r -- shell-startup-ok
 '''
             result = subprocess.run(['zsh', '-i', '-c', script], env=env, text=True, capture_output=True)

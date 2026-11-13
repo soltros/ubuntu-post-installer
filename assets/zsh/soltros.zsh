@@ -54,7 +54,7 @@ alias apt-remove='sudo apt-get remove'
 alias apt-search='apt-cache search'
 alias apt-show='apt-cache show'
 alias apt-list='apt list --installed'
-alias update='sudo apt-get update && sudo apt-get upgrade'
+alias update='sudo apt-get update && sudo apt-get upgrade && agy update'
 alias upgrade='sudo apt-get upgrade'
 alias ugc='sudo apt-get autoremove --purge && sudo apt-get autoclean'
 
