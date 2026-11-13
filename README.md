@@ -16,7 +16,7 @@ bash run.sh --dry-run
 sudo bash run.sh
 ```
 
-**Repository prerequisite:** the package repository must publish a signed **`apt-stonking`** release first. The package repository now targets 26.10, but its first signed release has not been published yet. The installer checks the 26.10 release, its signature, suite, expiry and any previously installed signing key before changing system settings. It refuses to substitute a different Ubuntu release’s packages. Follow the package repository’s maintainer instructions to publish the matching release; this repository does not generate signing keys or publish application packages.
+**Repository prerequisite:** the package repository must publish a signed **`apt-stonking`** release first. The package repository now targets 26.10, but its first signed release has not been published yet. The installer checks the 26.10 release, its signature, suite, expiry and any previously installed signing key before applying application and desktop settings. The independent Zsh/Starship phase runs first, even when the application repository is not ready. It refuses to substitute a different Ubuntu release’s packages. Follow the package repository’s maintainer instructions to publish the matching release; this repository does not generate signing keys or publish application packages.
 
 Run from your normal desktop account using `sudo`. Another existing account can be selected with `sudo bash run.sh --user derrik`. The installer uses that account’s actual home directory and does not create accounts, set passwords, repartition disks, modify mounts, change the hostname, replace the bootloader, remove existing software or automatically reboot.
 
@@ -33,6 +33,48 @@ bash run.sh --user-settings
 ```
 
 This last command expects the packages and theme resources to have been installed already.
+
+## Repair or install the shell only
+
+```bash
+git pull --ff-only
+sudo bash run.sh --shell-only
+exec zsh
+```
+
+This installs Zsh, Starship, Oh My Zsh with the git/sudo plugins, autosuggestions, syntax highlighting, eza, bat, ripgrep, fd and duf. It sets Zsh as your login shell and installs your managed configuration **before** any desktop theme or application repository work. `--shell-only` needs only the distribution repositories and the pinned Oh My Zsh resource; it does not require the custom APT release, Plasma setup or theme installation.
+
+Existing `.zshrc` content and Starship settings are preserved. The managed source hook is placed last so an existing prompt does not override Starship. A default `~/.config/starship.toml` is created only when absent. Ubuntu’s `batcat` and `fdfind` names work without extra system symlinks.
+
+| Command | Behavior |
+|---|---|
+| `cat`, `grep`, `find`, `df` | bat, ripgrep, fd and duf |
+| `ls`, `ll`, `tree` | eza with icons; `ll` includes hidden files and Git information |
+| `update`, `apt-update`, `apt-upgrade` | APT refresh/upgrade operations |
+| `apt-install`, `apt-remove`, `apt-search`, `apt-show`, `apt-list` | Install, remove, search, inspect and list Debian packages |
+| `urb [options]` | Reapply this installer checkout |
+| `ufu` | Fast-forward this checkout and refresh APT indexes |
+| `ufu-rebuild [options]` | Refresh and reapply the installer |
+| `ugc` | APT autoremove with purge, then autoclean |
+| `alias-help`, `aliases`, `alises` | Show the current aliases and setup helpers |
+
+History persists across terminals; completion, Emacs-style editing and prefix-based arrow-key history search are enabled. Shell repair does not change the GPU, audio, theme or application configuration.
+
+## Antigravity CLI
+
+The full installer runs the official command **as the desktop user**:
+
+```bash
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+```
+
+To install just the CLI without desktop or system setup, run without sudo:
+
+```bash
+bash run.sh --antigravity-only
+```
+
+When the full installer runs under sudo, it switches to the selected desktop account and sets that account’s `HOME` before executing the command. The resulting executable is `~/.local/bin/agy`; the managed Zsh configuration includes that directory in PATH. The vendor installer skips an existing CLI installation and handles its own updates. This installs the CLI; the Antigravity IDE is a separate application.
 
 ## What gets configured
 
@@ -102,7 +144,7 @@ System files are backed up before changes under `/var/backups/ubuntu-post-instal
 Review `/var/lib/ubuntu-post-installer/last-report.json` after a run:
 
 - Exit **0**: installation finished and no package gaps were found.
-- Exit **1**: an installation/configuration operation failed, or a prerequisite was unavailable. Preflight failures are printed before system changes.
+- Exit **1**: an installation/configuration operation failed, or a prerequisite was unavailable. Failures are printed and recorded. Application-repository failures do not undo the completed shell setup.
 - Exit **2**: managed setup completed but packages in the parity report are unavailable. `--allow-gaps` changes only this exit status; it does not hide failures or missing packages.
 
 Reboot after reviewing the report. Authenticate Tailscale with `sudo tailscale up` and Codex with `codex login`. Existing Secure Boot settings are retained; VirtualBox or controller DKMS packages may require the normal MOK enrollment process.

@@ -6,11 +6,13 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from shell_settings import configure_shell
 
 
 def install(root, home):
     if os.geteuid() == 0:
         raise RuntimeError('User settings must run without root privileges')
+    configure_shell(root, home)
     stamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
     backup = home / '.local/state/ubuntu-post-installer/backups' / stamp
 
@@ -45,9 +47,6 @@ def install(root, home):
         kde_work = home / '.cache/ubuntu-post-installer/kde'
         shutil.copytree(kde_source, kde_work, dirs_exist_ok=True)
         subprocess.run(['bash', 'install.sh', '-q', '-n', '1', '13', '1', 'auto'], cwd=kde_work, check=True)
-    omz = Path('/usr/share/soltros/themes/ohmyzsh')
-    if omz.exists() and not (home / '.oh-my-zsh').exists():
-        shutil.copytree(omz, home / '.oh-my-zsh')
     subprocess.run(['python3', str(base / 'fresh/configure.py'), str(home), str(base / 'fresh/catppuccin-mocha.json')], check=True)
     service_wants = home / '.config/systemd/user/default.target.wants'
     service_wants.mkdir(parents=True, exist_ok=True)
@@ -60,35 +59,6 @@ def install(root, home):
     agent = agent_conf.read_text() if agent_conf.exists() else ''
     if 'enable-ssh-support' not in agent.splitlines():
         write(agent_conf, agent.rstrip() + '\nenable-ssh-support\n')
-    managed = home / '.config/soltros/zshrc'
-    write(managed, '''export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)"
-export EDITOR=nano
-export VISUAL=nano
-autoload -Uz compinit && compinit
-[ ! -r /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ] || source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-export ZSH="$HOME/.oh-my-zsh"
-plugins=(git sudo)
-ZSH_THEME=""
-[ ! -r "$ZSH/oh-my-zsh.sh" ] || source "$ZSH/oh-my-zsh.sh"
-alias cat='bat --paging=never'
-alias grep=rg
-alias find=fd
-alias df=duf
-alias ls='eza --icons=auto'
-alias ll='eza -la --icons=auto --git'
-alias tree='eza --tree --icons=auto'
-alias aliases='alias'
-alias alises='alias'
-alias alias-help='alias'
-alias update='sudo apt-get update && sudo apt-get upgrade'
-command -v starship >/dev/null && eval "$(starship init zsh)"
-''')
-    zshrc = home / '.zshrc'
-    current = zshrc.read_text() if zshrc.exists() else ''
-    source_line = 'source "$HOME/.config/soltros/zshrc"'
-    if source_line not in current:
-        write(zshrc, current.rstrip() + '\n\n# Managed Kubuntu desktop settings\n' + source_line + '\n')
     write(home / '.config/fontconfig/conf.d/60-soltros.conf', '''<?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
 <fontconfig>

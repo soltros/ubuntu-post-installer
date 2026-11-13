@@ -10,10 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install shell test dependency
+        run: sudo apt-get update && sudo apt-get install -y zsh
       - name: Validate installer
         run: |
           python3 -m compileall -q scripts assets
+          zsh -n assets/zsh/soltros.zsh
           bash -n run.sh
+          bash -n scripts/install-antigravity.sh
           bash -n assets/user/.local/share/ubuntu-setup/plasma-settings.sh
           python3 -m unittest discover -s tests -v
           bash run.sh --dry-run

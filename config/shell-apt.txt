@@ -1,0 +1,11 @@
+zsh
+zsh-autosuggestions
+zsh-syntax-highlighting
+starship
+eza
+bat
+ripgrep
+fd-find
+duf
+git
+nano

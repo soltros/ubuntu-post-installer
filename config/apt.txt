@@ -142,3 +142,5 @@ steam-devices
 linux-tools-common
 linux-tools-generic
 starship
+zsh-syntax-highlighting
+nano

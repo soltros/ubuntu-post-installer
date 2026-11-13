@@ -32,6 +32,8 @@ def parse_args(argv=None):
     p.add_argument('--user', help='Existing desktop user (defaults to sudo caller)')
     p.add_argument('--no-flatpak', action='store_true', help='Report DEB-unavailable apps instead of installing their fallback')
     p.add_argument('--allow-gaps', action='store_true', help='Exit zero despite documented gaps; failures still exit nonzero')
+    p.add_argument('--antigravity-only', action='store_true', help='Install the official Antigravity CLI as the desktop user, without system setup')
+    p.add_argument('--shell-only', action='store_true', help='Install and repair Zsh, Starship and aliases without the application repository or desktop themes')
     p.add_argument('--user-settings', action='store_true', help='Apply desktop settings only, as your normal user')
     return p.parse_args(argv)
 
@@ -147,15 +149,15 @@ class Installer:
         self.write(f'/etc/apt/sources.list.d/{name}.list', entry + '\n')
 
     def check_soltros_release(self):
-        # Fail before modifying the machine if the target-release repository has
-        # not been published. Never substitute another Ubuntu suite.
+        # Check the application repository after the independent shell phase.
+        # Refuse application/system setup if the target release is unpublished. Never substitute another Ubuntu suite.
         try:
             with urllib.request.urlopen(SOLTROS_BASE + '/soltros-archive-keyring.asc', timeout=30) as response:
                 key = response.read()
             with urllib.request.urlopen(SOLTROS_BASE + '/InRelease', timeout=30) as response:
                 signed = response.read()
         except OSError as exc:
-            raise RuntimeError('Publish the signed apt-stonking release in soltros/ubuntu_packages first. No system changes have been made. ' + str(exc)) from exc
+            raise RuntimeError('Publish the signed apt-stonking release in soltros/ubuntu_packages first. The application/system stage has not been applied. ' + str(exc)) from exc
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
             public = tmp / 'key.gpg'
@@ -178,6 +180,30 @@ class Installer:
                 if fingerprint(public) != fingerprint(current):
                     raise RuntimeError('The Soltros signing key changed. Verify the key rotation before replacing the installed keyring.')
         self.soltros_key = key
+
+    def antigravity(self):
+        script = ROOT / 'scripts/install-antigravity.sh'
+        if os.geteuid() == 0:
+            if self.account.pw_uid == 0:
+                raise RuntimeError('Select a non-root desktop account with --user, or run without sudo.')
+            self.run('bash', script, user=True)
+        else:
+            if os.getuid() != self.account.pw_uid:
+                raise RuntimeError('Use sudo with --user to install for a different desktop account.')
+            self.run('bash', script)
+
+    def shell(self):
+        self.run('apt-get', 'update')
+        self.run('apt-get', 'install', '-y', 'software-properties-common', 'ca-certificates', 'curl')
+        self.run('add-apt-repository', '-y', 'universe')
+        self.run('apt-get', 'update')
+        self.run('apt-get', 'install', '-y', *lines('shell-apt.txt'))
+        self.run('starship', '--version')
+        framework = next(item for item in json.loads((ROOT / 'config/themes.json').read_text()) if item['name'] == 'ohmyzsh')
+        self.attempt('Oh My Zsh framework', lambda: self.theme(framework))
+        self.run('python3', ROOT / 'scripts/shell_settings.py', ROOT, user=True)
+        self.run('usermod', '-s', '/usr/bin/zsh', self.user)
+        self.run('zsh', '-ic', '[[ "$STARSHIP_SHELL" = zsh ]] && command -v starship && alias ll && alias apt-search && whence -w urb', user=True)
 
     def system(self):
         self.run('dpkg', '--add-architecture', 'i386')
@@ -383,6 +409,13 @@ scrub(mounts.get('filesystems', []))
     def plan(self):
         print('Target: Kubuntu 26.10 amd64; existing Plasma desktop; AMD b450m-d3sh profile.')
         print('User:', self.user)
+        if self.args.antigravity_only:
+            print('Install official Antigravity CLI as', self.user, 'under', self.home / '.local/bin/agy')
+            return
+        if self.args.shell_only:
+            print('Shell packages:', ' '.join(lines('shell-apt.txt')))
+            print('Apply Zsh, Starship, history, completions, git/sudo plugins and APT aliases only.')
+            return
         print('APT:', ' '.join(lines('apt.txt')))
         print('Soltros APT packages:', ' '.join(lines('soltros-apt.txt')))
         print('Vendor DEBs:', ', '.join(s['name'] for s in json.loads((ROOT / 'config/vendor-debs.json').read_text())))
@@ -396,14 +429,19 @@ scrub(mounts.get('filesystems', []))
         self.plan()
         if self.args.dry_run:
             return 0
+        if self.args.shell_only and self.args.antigravity_only:
+            raise RuntimeError('Run --shell-only and --antigravity-only separately.')
+        if self.args.antigravity_only:
+            self.antigravity()
+            return 0
         release = os_release()
         if release.get('ID') != 'ubuntu' or release.get('VERSION_ID') != '26.10':
             raise RuntimeError('Only Kubuntu 26.10 is supported; this is not a release-upgrade script.')
         if subprocess.check_output(['dpkg', '--print-architecture'], text=True).strip() != 'amd64':
             raise RuntimeError('This desktop hardware profile requires amd64.')
-        if not shutil.which('update-grub'):
+        if not self.args.shell_only and not shutil.which('update-grub'):
             raise RuntimeError('This profile expects Kubuntu’s GRUB installation; no bootloader conversion is attempted.')
-        if not shutil.which('plasmashell') or not shutil.which('kwriteconfig6'):
+        if not self.args.shell_only and (not shutil.which('plasmashell') or not shutil.which('kwriteconfig6')):
             raise RuntimeError('Install Kubuntu 26.10 first; Plasma 6 is required.')
         if self.args.user_settings:
             if os.geteuid() == 0:
@@ -411,12 +449,16 @@ scrub(mounts.get('filesystems', []))
             return subprocess.call(['python3', str(ROOT / 'scripts/user-settings.py'), str(ROOT)])
         if os.geteuid() != 0 or self.account.pw_uid == 0:
             raise RuntimeError('Run sudo bash run.sh from your desktop account, or specify --user.')
-        self.check_soltros_release()
         self.cache.mkdir(parents=True, exist_ok=True)
         self.state.mkdir(parents=True, exist_ok=True)
         self.backup.mkdir(parents=True, mode=0o700)
         os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
         try:
+            self.shell()
+            if self.args.shell_only:
+                return 1 if self.failures else 0
+            self.attempt('Antigravity CLI', self.antigravity)
+            self.check_soltros_release()
             self.system()
             self.apps()
             self.themes()
