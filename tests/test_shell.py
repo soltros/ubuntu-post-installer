@@ -58,6 +58,26 @@ class ShellTests(unittest.TestCase):
             self.configure(home)
             self.assertEqual(profile.read_text(), first)
 
+    def test_kde_deletion_markers_and_unrelated_syntax_survive_shell_repair(self):
+        with tempfile.TemporaryDirectory() as folder:
+            home = Path(folder)
+            rc = home / '.config/konsolerc'
+            rc.parent.mkdir()
+            original = '# Keep this comment\n[Desktop Entry]\nDefaultProfile=Personal.profile\n[MainWindow]\nState[$d]\nMenuBar=Disabled\n[Nested][Group]\nPath[$e]=$HOME/test\nBareKey\n'
+            rc.write_text(original)
+            profile = home / '.local/share/konsole/Personal.profile'
+            profile.parent.mkdir(parents=True)
+            profile.write_text('[General]\nName=Personal\nCommand[$d]\n[Appearance]\nFont=Roboto Mono,14,-1,5,50,0,0,0,0,0\nColorScheme=Breeze\n# profile comment\n')
+            self.configure(home)
+            self.assertEqual(rc.read_text(), original)
+            self.assertIn('Command=/usr/bin/zsh', profile.read_text())
+            self.assertNotIn('Command[$d]', profile.read_text())
+            self.assertIn('# profile comment\n', profile.read_text())
+            first = profile.read_text()
+            self.configure(home)
+            self.assertEqual(profile.read_text(), first)
+            self.assertEqual(rc.read_text(), original)
+
     def test_existing_starship_configuration_is_preserved(self):
         with tempfile.TemporaryDirectory() as folder:
             home = Path(folder)

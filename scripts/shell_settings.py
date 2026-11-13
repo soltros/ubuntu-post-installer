@@ -1,15 +1,67 @@
 #!/usr/bin/env python3
 """Apply shell configuration independently of desktop/theme activation."""
-import configparser
-import io
 import datetime
 import os
+import re
 from pathlib import Path
 import shlex
 import shutil
 import sys
 
 SOURCE_LINE = 'source "$HOME/.config/soltros/zshrc"'
+
+
+class KConfigText:
+    """Edit individual plain keys while retaining KDE-specific syntax verbatim."""
+    def __init__(self, path):
+        self.lines = path.read_text().splitlines(keepends=True) if path.is_file() else []
+
+    def get(self, section, key, fallback=None):
+        current = None
+        value = fallback
+        for line in self.lines:
+            stripped = line.strip()
+            if stripped.startswith('[') and stripped.endswith(']'):
+                current = stripped
+            elif current == '[' + section + ']':
+                name, separator, content = line.rstrip('\r\n').partition('=')
+                if name.strip() == key and separator:
+                    value = content
+                elif name.strip() == key + '[$d]':
+                    value = fallback
+        return value
+
+    def set(self, section, key, value):
+        header = '[' + section + ']'
+        current = None
+        found = False
+        insertion = None
+        result = []
+        managed_key = re.compile(re.escape(key) + r'(?:\[\$[^\]]+\])*(?:=.*)?$')
+        for line in self.lines:
+            stripped = line.strip()
+            if stripped.startswith('[') and stripped.endswith(']'):
+                if current == header:
+                    insertion = len(result)
+                current = stripped
+                found = found or current == header
+            if current == header and managed_key.fullmatch(stripped):
+                continue
+            result.append(line)
+        if current == header:
+            insertion = len(result)
+        if not found:
+            if result and not result[-1].endswith('\n'):
+                result[-1] += '\n'
+            result.extend(['\n', header + '\n'])
+            insertion = len(result)
+        elif insertion and not result[insertion - 1].endswith('\n'):
+            result[insertion - 1] += '\n'
+        result.insert(insertion, key + '=' + value + '\n')
+        self.lines = result
+
+    def text(self):
+        return ''.join(self.lines)
 
 
 def configure_shell(root, home):
@@ -42,44 +94,26 @@ def configure_shell(root, home):
 </fontconfig>
 ''')
 
-    def config(path):
-        parser = configparser.ConfigParser(interpolation=None, strict=False)
-        parser.optionxform = str
-        if path.is_file():
-            parser.read(path)
-        return parser
-
-    def save_config(path, parser):
-        output = io.StringIO()
-        parser.write(output, space_around_delimiters=False)
-        write(path, output.getvalue())
-
     # Qt/Konsole can retain a profile's explicit font instead of using generic
     # Fontconfig fallbacks. Select a patched text font in the default profile.
     konsolerc = home / '.config/konsolerc'
-    terminal = config(konsolerc)
+    terminal = KConfigText(konsolerc)
     profile_name = terminal.get('Desktop Entry', 'DefaultProfile', fallback='Soltros.profile')
     if Path(profile_name).name != profile_name or not profile_name.endswith('.profile'):
         profile_name = 'Soltros.profile'
     profile_path = home / '.local/share/konsole' / profile_name
-    profile = config(profile_path if profile_path.is_file() else Path('/usr/share/konsole') / profile_name)
-    if not profile.has_section('General'):
-        profile.add_section('General')
-    if not profile.has_option('General', 'Name'):
+    profile = KConfigText(profile_path if profile_path.is_file() else Path('/usr/share/konsole') / profile_name)
+    if profile.get('General', 'Name') is None:
         profile.set('General', 'Name', 'Soltros')
     profile.set('General', 'Command', '/usr/bin/zsh')
     profile.set('General', 'Arguments', '/usr/bin/zsh')
-    if not profile.has_section('Appearance'):
-        profile.add_section('Appearance')
     old_font = profile.get('Appearance', 'Font', fallback='monospace,11,-1,5,50,0,0,0,0,0')
     font_parts = old_font.split(',')
     font_parts[0] = 'Hack Nerd Font Mono'
     profile.set('Appearance', 'Font', ','.join(font_parts))
-    save_config(profile_path, profile)
-    if not terminal.has_section('Desktop Entry'):
-        terminal.add_section('Desktop Entry')
+    write(profile_path, profile.text())
     terminal.set('Desktop Entry', 'DefaultProfile', profile_name)
-    save_config(konsolerc, terminal)
+    write(konsolerc, terminal.text())
 
     framework = Path('/usr/share/soltros/themes/ohmyzsh')
     if framework.exists() and not (home / '.oh-my-zsh').exists():
