@@ -162,3 +162,14 @@ bash run.sh --dry-run
 ```
 
 CI checks script syntax, manifest consistency, archive extraction, APT-only application installation, fallback decisions and a harmless preview. The installation has not been exercised on a complete Kubuntu desktop VM here; GPU, display-manager, Secure Boot and interactive desktop behavior require a real-machine/VM run. A signed 26.10 package release is also required before an end-to-end installation can succeed.
+
+### Flatpak application menu discovery
+
+The installer includes both system and user Flatpak export paths in Plasma’s login environment, preserving custom `XDG_DATA_DIRS`. It refreshes Plasma’s menu cache after installing fallback apps. Log out and back in once after installing Flatpak so the running desktop inherits the paths and watches later app installs normally.
+
+To repair this independently, without reinstalling apps, run as your desktop user:
+
+```bash
+git pull
+python3 scripts/flatpak_desktop.py
+```

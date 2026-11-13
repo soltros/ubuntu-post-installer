@@ -370,6 +370,9 @@ scrub(mounts.get('filesystems', []))
             self.attempt(item['apt'], lambda app=item['flatpak']: self.run('flatpak', 'install', '--system', '-y', '--noninteractive', 'flathub', app))
             self.fallbacks.append(item)
 
+        if fallback_initialized:
+            self.run('python3', ROOT / 'scripts/flatpak_desktop.py', user=True)
+
     def themes(self):
         for spec in json.loads((ROOT / 'config/themes.json').read_text()):
             if spec['name'] in ['nerd-fonts', 'terminal-font', 'ohmyzsh']:

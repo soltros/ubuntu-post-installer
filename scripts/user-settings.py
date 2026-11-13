@@ -7,12 +7,14 @@ import shutil
 import subprocess
 import sys
 from shell_settings import configure_shell
+from flatpak_desktop import configure_flatpak_desktop
 
 
 def install(root, home):
     if os.geteuid() == 0:
         raise RuntimeError('User settings must run without root privileges')
     configure_shell(root, home)
+    configure_flatpak_desktop(home)
     stamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
     backup = home / '.local/state/ubuntu-post-installer/backups' / stamp
 
